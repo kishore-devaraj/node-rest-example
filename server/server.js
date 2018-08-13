@@ -1,12 +1,25 @@
-const { mongoose } = require('./db/db')
-const { Todo } = require('./models/Todo')
+const env = process.env.NODE_ENV || 'development'
+console.log(env)
+
+if (env === 'development') {
+  process.env.PORT = 3000
+  process.env.PROD_MONGODB = 'mongodb://localhost:27017/todos-app'
+} else if (env === 'test') {
+  process.env.PORT = 3000
+  process.env.PROD_MONGODB = 'mongodb://localhost:27017/todos-app-test'
+}
 
 const express = require('express')
 const bodyParser = require('body-parser')
 const {ObjectId} = require('mongodb')
+const _ = require('lodash')
+
+const { mongoose } = require('./db/db')
+const { Todo } = require('./models/Todo')
+
 
 const app = express()
-const port = process.env.PORT || 3000
+const port = process.env.PORT
 app.use(bodyParser.json())
 
 app.post('/todos', (req, res) => {
@@ -31,7 +44,7 @@ app.get('/todos', (req, res) => {
 
 app.get('/todos/:id', (req, res) => {
   const id = req.params.id
-  if(!ObjectId.isValid(id)) res.status(404).send('Todo id is not valid')
+  if(!ObjectId.isValid(id)) return res.status(404).send({'errorMessage' : 'Todo id is not valid'})
 
   Todo.findById(id)
   .then(todo => {
@@ -40,22 +53,48 @@ app.get('/todos/:id', (req, res) => {
   }).catch( e => res.status(400).send())
 })
 
+app.delete('/todos/:id', (req, res) => {
+
+  const id = req.params.id
+  if(!ObjectId.isValid(id)) return res.status(404).send({'errorMessage' : 'Todo id is not valid'})
+
+  Todo.findByIdAndRemove(id)
+  .then(todo => {
+    if(!todo) return res.status(404).send({todo})
+    return res.send({todo})
+  }).catch( e => res.status(400).send())
+})
+
+app.patch('/todos/:id', (req, res) => {
+  const id = req.params.id
+  const body = _.pick(req.body, ['completed', 'text'])
+  
+  if(!ObjectId.isValid(id)) return res.status(404).send({'errorMessage': 'Not a valid Id'})
+
+  if(_.isBoolean(body.completed) && body.completed) {
+    body.completed = true,
+    body.completedAt = new Date().getTime()
+  } else {
+    body.completed = false,
+    body.completedAt = null
+  }
+  
+  Todo.findByIdAndUpdate(
+    id,
+    {$set : body}, 
+    {new : true}
+    )
+  .then(todo => {
+    res.send(todo)
+  }).catch(e => res.status(404).send(e))
+})
+
 app.listen(port, (err) => {
   if (err) {
     return console.log('Express cannot be started!')
   }
   console.log(`Express running successfully on ${port}`)
 })
-
-// let newTodo = Todo({
-//   text: ' To kickstart Scrum bot project  '
-// })
-
-// newTodo.save().then( (doc) => {
-//   console.log(doc)
-// }, (err) => {
-//   console.log('Unable to save todo', err)
-// })
 
 module.exports = {
   app

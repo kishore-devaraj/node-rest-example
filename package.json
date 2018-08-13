@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha **/*.test.js",
+    "test": "cross-env NODE_ENV=test mocha **/*.test.js",
     "test-watch": "nodemon --exec npm test",
-    "start": "node server/server.js"
+    "start": "node server/server.js",
+    "start-watch": "nodemon --exec npm start"
   },
   "engines": {
     "nodejs": "9.7.1"
@@ -17,10 +18,12 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
+    "lodash": "^4.17.10",
     "mongodb": "^3.1.1",
     "mongoose": "^5.2.7"
   },
   "devDependencies": {
+    "cross-env": "^5.2.0",
     "expect": "^1.20.2",
     "mocha": "^5.2.0",
     "supertest": "^3.1.0"
