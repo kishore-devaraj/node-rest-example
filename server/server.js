@@ -9,13 +9,16 @@ if (env === 'development') {
   process.env.PROD_MONGODB = 'mongodb://localhost:27017/todos-app-test'
 }
 
+
+
 const express = require('express')
 const bodyParser = require('body-parser')
 const {ObjectId} = require('mongodb')
 const _ = require('lodash')
 
 const { mongoose } = require('./db/db')
-const { Todo, User } = require('./models/Todo')
+const { Todo } = require('./models/Todo')
+const { User } = require('./models/User')
 
 
 const app = express()
@@ -97,8 +100,9 @@ app.post('/users', (req, res) => {
   body = _.pick(req.body, ['email','password'])
   console.log(body)
   let newUser = new User(body)
-  newUser.save()
-  .then(user => res.send(user))
+  newUser.save().then(() => {
+    return newUser.generateAuthToken()
+  }).then(token => res.header('x-auth',token).send(newUser))
   .catch(err => res.status(400).send(err))
 })
 
