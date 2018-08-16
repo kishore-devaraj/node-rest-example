@@ -15,7 +15,7 @@ const {ObjectId} = require('mongodb')
 const _ = require('lodash')
 
 const { mongoose } = require('./db/db')
-const { Todo } = require('./models/Todo')
+const { Todo, User } = require('./models/Todo')
 
 
 const app = express()
@@ -88,6 +88,20 @@ app.patch('/todos/:id', (req, res) => {
     res.send(todo)
   }).catch(e => res.status(404).send(e))
 })
+
+
+
+
+// API'S FOR USERS
+app.post('/users', (req, res) => {
+  body = _.pick(req.body, ['email','password'])
+  console.log(body)
+  let newUser = new User(body)
+  newUser.save()
+  .then(user => res.send(user))
+  .catch(err => res.status(400).send(err))
+})
+
 
 app.listen(port, (err) => {
   if (err) {
