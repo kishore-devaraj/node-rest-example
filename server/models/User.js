@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const validator = require('validator')
 const jwt = require('jsonwebtoken')
+const {ObjectID} = require('mongodb')
 const _ = require('lodash')
 
 const UserSchema = new mongoose.Schema({
@@ -34,6 +35,28 @@ const UserSchema = new mongoose.Schema({
   }]
 })
 
+// Models methods
+UserSchema.statics.findUserByToken = function (token) {
+  let user = this; 
+  let decoded
+  try {
+    decoded = jwt.verify(token, 'someSecret')
+  } catch(e) {
+    return Promise.reject()
+    // return new Promise( (resolve, reject) => {
+    //   return reject()
+    // })
+  }
+
+  return User.findOne({
+    '_id': ObjectID(decoded._id),
+    'tokens.token': token,
+    'tokens.access': 'auth'
+  })
+}
+
+
+// Instance methods
 UserSchema.methods.toJSON = function () {
   let user = this
   let userObj = user.toObject()
@@ -43,7 +66,8 @@ UserSchema.methods.toJSON = function () {
 
 UserSchema.methods.generateAuthToken = function () { 
   let user = this
-  let access = 'access'
+  console.log(user)
+  let access = 'auth'
   let token = jwt.sign({_id: user._id.toHexString()}, 'someSecret')
   user.tokens.push({access, token})
   return user.save().then(() => {

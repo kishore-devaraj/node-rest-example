@@ -19,6 +19,7 @@ const _ = require('lodash')
 const { mongoose } = require('./db/db')
 const { Todo } = require('./models/Todo')
 const { User } = require('./models/User')
+const { authenicate } = require('./middleware/authenicate')
 
 
 const app = express()
@@ -93,8 +94,6 @@ app.patch('/todos/:id', (req, res) => {
 })
 
 
-
-
 // API'S FOR USERS
 app.post('/users', (req, res) => {
   body = _.pick(req.body, ['email','password'])
@@ -106,6 +105,9 @@ app.post('/users', (req, res) => {
   .catch(err => res.status(400).send(err))
 })
 
+app.get('/users/me', authenicate, (req, res) => {
+  res.send(req.user)
+})
 
 app.listen(port, (err) => {
   if (err) {
