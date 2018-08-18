@@ -62,8 +62,7 @@ UserSchema.statics.findUserByCredentials = function (email, password) {
   return user.findOne({email})
   .then(user => {
     if (!user) {
-      console.log('user not found')
-      return Promise.reject()
+      return Promise.reject('User not found')
     }
 
     return new Promise((resolve, reject) => {
@@ -71,8 +70,7 @@ UserSchema.statics.findUserByCredentials = function (email, password) {
         if (res) {
           resolve(user)
         } else {
-          console.log('Password not matching')
-        reject()
+          reject('Password not matching')
         }
       })
     })
