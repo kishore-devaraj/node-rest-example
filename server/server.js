@@ -26,9 +26,10 @@ const app = express()
 const port = process.env.PORT
 app.use(bodyParser.json())
 
-app.post('/todos', (req, res) => {
+app.post('/todos', authenicate, (req, res) => {
   let todo = Todo({
-    text: req.body.text
+    text: req.body.text,
+    _creator: req.user._id
   })
 
   todo.save().then( doc => {
@@ -38,38 +39,49 @@ app.post('/todos', (req, res) => {
   } )
 })
 
-app.get('/todos', (req, res) => {
-  Todo.find({}).then(todos => {
+app.get('/todos', authenicate, (req, res) => {
+  Todo.find({
+    _creator: req.user._id
+  }).then(todos => {
     res.status(200).send({todos})
   }, (err) => {
     res.status(400).send(err)
   })
 })
 
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenicate, (req, res) => {
   const id = req.params.id
   if(!ObjectId.isValid(id)) return res.status(404).send({'errorMessage' : 'Todo id is not valid'})
 
-  Todo.findById(id)
+  Todo.findOne({
+    _id: id,
+    _creator: req.user._id
+  })
+  
   .then(todo => {
     if(!todo) return res.status(404).send({todo})
     return res.status(200).send({todo})
   }).catch( e => res.status(400).send())
 })
 
-app.delete('/todos/:id', (req, res) => {
 
+app.delete('/todos/:id', authenicate, (req, res) => {
   const id = req.params.id
   if(!ObjectId.isValid(id)) return res.status(404).send({'errorMessage' : 'Todo id is not valid'})
 
-  Todo.findByIdAndRemove(id)
+  Todo.findOneAndRemove({
+    _id: id,
+    _creator: req.user._id
+  })
   .then(todo => {
     if(!todo) return res.status(404).send({todo})
     return res.send({todo})
   }).catch( e => res.status(400).send())
 })
 
-app.patch('/todos/:id', (req, res) => {
+
+
+app.patch('/todos/:id', authenicate, (req, res) => {
   const id = req.params.id
   const body = _.pick(req.body, ['completed', 'text'])
   
@@ -83,12 +95,15 @@ app.patch('/todos/:id', (req, res) => {
     body.completedAt = null
   }
   
-  Todo.findByIdAndUpdate(
-    id,
+  Todo.findOneAndUpdate(
+    {_id: id, _creator: req.user._id},
     {$set : body}, 
     {new : true}
     )
   .then(todo => {
+    if (!todo) {
+      return Promise.reject()
+    }
     res.send(todo)
   }).catch(e => res.status(404).send(e))
 })
