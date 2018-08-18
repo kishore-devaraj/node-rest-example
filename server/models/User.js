@@ -68,7 +68,6 @@ UserSchema.methods.toJSON = function () {
 
 UserSchema.methods.generateAuthToken = function () { 
   let user = this
-  console.log(user)
   let access = 'auth'
   let token = jwt.sign({_id: user._id.toHexString()}, 'someSecret')
   user.tokens.push({access, token})

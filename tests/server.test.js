@@ -1,29 +1,15 @@
 const expect = require('expect')
 const request = require('supertest')
-const  {ObjectId} = require('mongodb')
+const  {ObjectID} = require('mongodb')
 
 const { app } = require('../server/server')
 const {Todo} = require('../server/models/Todo')
+const {User} = require('../server/models/User')
+const {seedTodos, seedUsers, populateTodos, populateUsers} = require('./seeds/seed')
 
-const seedTodos = [
-  {
-    _id: new ObjectId(),
-    text: 'First Todo',
-    completed: false,
-    completedAt: null
-  }, {
-    _id: new ObjectId(),
-    text: 'Second Todo'
-  }
-]
 
-beforeEach(done => {
-  Todo.remove({})
-  .then(() => {
-    return Todo.insertMany(seedTodos)
-  }).then(() => done())
-})
-
+beforeEach(populateTodos)
+beforeEach(populateUsers)
 
 describe('Server Test Cases', () => {
   it('should add todo to the database via POST request', (done) => {
@@ -98,7 +84,7 @@ describe('GET /todoId' , () => {
   })
 
   it('should return 404 on empty todo id', (done) => {
-    const noneExistingId = new ObjectId()
+    const noneExistingId = new ObjectID()
     request(app)
     .get('/todos/' + noneExistingId)
     .expect(404)
@@ -134,7 +120,7 @@ describe('DELETE /todos:id', () => {
 
   it('should 404 when id is not found', (done) => {
     request(app)
-    .delete('/todos/' + new ObjectId())
+    .delete('/todos/' + new ObjectID())
     .expect(404)
     .end(done)
   })  
@@ -191,5 +177,78 @@ describe('PATCH /todos/:id', () => {
         done()
       }).catch(err => done(err))
     })
+  })
+})
+
+
+// Test cases for User
+
+describe('GET /users/me', () => {
+  it('should return user email and id if the auth token is correct', (done) => {
+    request(app)
+    .get('/users/me')
+    .set('x-auth', seedUsers[0].tokens[0].token)
+    .expect(200)
+    .expect(res => {
+      expect(res.body._id).toBe(seedUsers[0]._id.toHexString())
+      expect(res.body.email).toBe(seedUsers[0].email)
+    })
+    .end(done)
+  })
+
+  it('should return forbidden for invalid or null token', (done) => {
+    request(app)
+    .get('/users/me')
+    .expect(401)
+    .expect(res => {
+      expect(res.body).toEqual({})
+    })
+    .end(done)
+  })
+})
+
+describe('POST /users', () => {
+  let email = 'kishoredevaraj@gmail.com'
+  let password = 'password'
+  it('should create user on valid username and password', (done) => {
+    request(app)
+    .post('/users')
+    .send({email, password})
+    .expect(200)
+    .expect(res => {
+      expect(res.body.email).toBe(email)
+      expect(res.body._id).toExist()
+      expect(res.header['x-auth']).toExist()
+    })
+    .end((err, res) => {
+      if (err) return done(err)
+      
+      
+      User.findOne({email})
+      .then(user => {
+        expect(user.email).toBe(email)
+        expect(user._id.toHexString()).toBe(res.body._id)
+        expect(user.password).toNotBe(password)
+        expect(user.tokens[0].token).toExist()
+        expect(user.tokens[0].access).toExist()
+        done()
+      }).catch(e => done(err))
+    })
+  })
+
+  it('should not create users with unmet criteria', (done) => {
+    request(app)
+    .post('/users')
+    .send({email: 'kishore', password: 3455})
+    .expect(400)
+    .end(done)
+  })
+
+  it('should not create duplicate users', (done) => {
+    request(app)
+    .post('/users')
+    .send({email: seedUsers[0].email, password: 'somepassword'})
+    .expect(400)
+    .end(done)
   })
 })
