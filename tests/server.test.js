@@ -285,7 +285,7 @@ describe('POST /users', () => {
   it('should not create duplicate users', (done) => {
     request(app)
     .post('/users')
-    .send({email: seedUsers[0].email, password: 'somepassword'})
+    .send({email: seedUsers[0].email, password: process.env.JWT_SECRET})
     .expect(400)
     .end(done)
   })
