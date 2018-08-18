@@ -108,6 +108,22 @@ app.get('/users/me', authenicate, (req, res) => {
   res.send(req.user)
 })
 
+app.post('/users/login', (req, res) => {
+  body = _.pick(req.body, ['email', 'password'])
+  User.findUserByCredentials(body.email, body.password)
+  .then(user => {
+    return user.generateAuthToken()
+    .then(token => {
+      res.set('x-auth', token)
+      res.send(user)
+    })
+  })
+  .catch(e => {
+    console.log(e)
+    res.status(400).send(e)
+  })
+})
+
 app.listen(port, (err) => {
   if (err) {
     return console.log('Express cannot be started!')
